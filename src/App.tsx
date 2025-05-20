@@ -9,6 +9,7 @@ function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [task, setTask] = useState("");
   const [description, setDescription] = useState("");
+  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
 
   useEffect(() => {
     const subscription = client.models.Todo.observeQuery().subscribe({
@@ -23,8 +24,7 @@ function App() {
       await client.models.Todo.create({
         content: `${task}: ${description}`,
       });
-      setTask("");
-      setDescription("");
+      resetForm();
     } else {
       alert("Task name is required.");
     }
@@ -34,6 +34,31 @@ function App() {
     if (confirm("Are you sure you want to delete this todo?")) {
       client.models.Todo.delete({ id });
     }
+  }
+
+  function startEditing(todo: Schema["Todo"]["type"]) {
+    setEditingTodoId(todo.id);
+    const [taskPart, ...descParts] = (todo.content ?? "").split(":");
+    setTask(taskPart.trim());
+    setDescription(descParts.join(":").trim());
+  }
+
+  async function updateTodo() {
+    if (task.trim() && editingTodoId) {
+      await client.models.Todo.update({
+        id: editingTodoId,
+        content: `${task}: ${description}`,
+      });
+      resetForm();
+    } else {
+      alert("Task name is required.");
+    }
+  }
+
+  function resetForm() {
+    setTask("");
+    setDescription("");
+    setEditingTodoId(null);
   }
 
   return (
@@ -52,16 +77,23 @@ function App() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
-        <button onClick={createTodo}>Add Todo</button>
+        <button onClick={editingTodoId ? updateTodo : createTodo}>
+          {editingTodoId ? "Update Todo" : "Add Todo"}
+        </button>
       </div>
 
       <ul>
         {todos.map((todo) => (
           <li key={todo.id}>
-            <span>{todo.content}</span>
-            <button className="delete-btn" onClick={() => deleteTodo(todo.id)}>
-              Delete
-            </button>
+            <span>{todo.content ?? "No content available"}</span>
+            <div className="todo-actions">
+              <button className="edit-btn" onClick={() => startEditing(todo)}>
+                Edit
+              </button>
+              <button className="delete-btn" onClick={() => deleteTodo(todo.id)}>
+                Delete
+              </button>
+            </div>
           </li>
         ))}
       </ul>
