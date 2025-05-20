@@ -9,7 +9,6 @@ function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [task, setTask] = useState("");
   const [description, setDescription] = useState("");
-  const [editingTodoId, setEditingTodoId] = useState<string | null>(null);
 
   useEffect(() => {
     const subscription = client.models.Todo.observeQuery().subscribe({
@@ -37,27 +36,6 @@ function App() {
     }
   }
 
-  // Handling Update Todo
-  async function updateTodo() {
-    if (task.trim()) {
-      await client.models.Todo.update({
-        id: editingTodoId!,
-        content: `${task}: ${description}`,
-      });
-      setTask("");
-      setDescription("");
-      setEditingTodoId(null);  // Reset editing state
-    } else {
-      alert("Task name is required.");
-    }
-  }
-
-  function startEditing(todo: Schema["Todo"]["type"]) {
-    setEditingTodoId(todo.id);
-    setTask(todo.content.split(":")[0]); // Split task and description
-    setDescription(todo.content.split(":")[1] || "");
-  }
-
   return (
     <main>
       <h1>My Todos</h1>
@@ -74,9 +52,7 @@ function App() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
-        <button onClick={editingTodoId ? updateTodo : createTodo}>
-          {editingTodoId ? "Update Todo" : "Add Todo"}
-        </button>
+        <button onClick={createTodo}>Add Todo</button>
       </div>
 
       <ul>
@@ -85,12 +61,6 @@ function App() {
             <span>{todo.content}</span>
             <button className="delete-btn" onClick={() => deleteTodo(todo.id)}>
               Delete
-            </button>
-            <button
-              className="edit-btn"
-              onClick={() => startEditing(todo)}
-            >
-              Edit
             </button>
           </li>
         ))}
